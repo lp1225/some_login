@@ -93,7 +93,7 @@ class Crack:
         :return:
         """
         im = image.open(filename)
-        new_im = image.new('RGB', (260, 116)) # width 260px, height 116px
+        new_im = image.new('RGB', (260, 116))  # width 260px, height 116px
 
         im_list_upper = []
         im_list_down = []
@@ -112,6 +112,7 @@ class Crack:
             new_im.paste(im, (x_offset, 58))
             x_offset += im.size[0]
         new_im.save(filename)
+        time.sleep(1)
         return new_im
 
     def get_slider(self):
@@ -154,7 +155,6 @@ class Crack:
         # 取两张图片的像素点
         pix1 = img1.load()[x, y]
         pix2 = img2.load()[x, y]
-        # print('pix1------', pix1)
         threshold = 60
         if (abs(pix1[0] - pix2[0] < threshold) and abs(pix1[1] - pix2[1] < threshold) and abs(
             pix1[2] - pix2[2] < threshold)):
@@ -168,12 +168,13 @@ class Crack:
         :param distance:
         :return:
         """
+        distance += 24
         # 移动轨迹
         track = []
         # 当前位移
         current = 0
         # 减速阀值
-        mid = distance * 4 / 5
+        mid = distance * 3 / 5
         # 计算阀值
         t = 0.2
         # 计算初速度
@@ -188,13 +189,16 @@ class Crack:
                 a = -3
             # 初速度为
             v0 = v
-            v = v0+a*t
             # 移动距离x = v0t+1/2*a^2
             move = v0*t + 1/2*a*t*t
+            print('move', move)
             # 当前位移
             current += move
             # 加入轨迹
             track.append(round(move))
+            # 速度已到达v，该速度作为下次的初速度
+            v = v0 + a*t
+        # track = [-3, -3, -2, -2, -2, -2, -2, -1, -1, -1]
         return track
 
     def move_to_gap(self, slider, track):
@@ -209,9 +213,17 @@ class Crack:
             x = random.choice(track)
             ActionChains(self.browser).move_by_offset(xoffset=x, yoffset=0).perform()
             track.remove(x)
+        tracks = [-3, -3, -3, -2, -2, -2, -2, -2, -1, -1, -1, -1]
+        time.sleep(0.5)
+
+        for track in tracks:
+            ActionChains(self.browser).move_by_offset(xoffset=track, yoffset=0).perform()
+        # 小范围震荡一下，进一步迷惑极验后台，这一步可以极大地提高成功率
+        ActionChains(self.browser).move_by_offset(xoffset=-1, yoffset=0).perform()
+        ActionChains(self.browser).move_by_offset(xoffset=1, yoffset=0).perform()
+
         time.sleep(0.5)
         ActionChains(self.browser).release().perform()
-
 
     def crack(self):
         self.open()
@@ -219,7 +231,7 @@ class Crack:
         bg_img = self.get_merge_image('bg.jpg', bg_list)
         fullbg_img = self.get_merge_image('fullbg.jpg', fbg_list)
 
-        #缺口位置
+        # 缺口位置
         gap = self.get_pag(fullbg_img, bg_img)
         print('缺口位置', gap)
 
@@ -232,10 +244,11 @@ class Crack:
         # 拖动滑块到缺口处
         self.move_to_gap(slider, track)
 
+    def run(self, crack):
+        print('开始验证...')
+        # crack = Crack('123', '456')
+        self.browser.implicitly_wait(3)
+        crack.crack()
 
-if __name__ == '__main__':
-    print('开始验证...')
-    crack = Crack('123', '456')
-    crack.crack()
-
-
+# crack = Crack('', '')
+# crack.run(crack)
